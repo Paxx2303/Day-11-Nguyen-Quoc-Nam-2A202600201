@@ -9,6 +9,7 @@ Usage:
     python main.py --part 3     # Run only Part 3 (testing pipeline)
     python main.py --part 4     # Run only Part 4 (HITL design)
 """
+
 import sys
 import asyncio
 import argparse
@@ -22,18 +23,11 @@ async def part1_attacks():
     print("PART 1: Attack Unprotected Agent")
     print("=" * 60)
 
-    from agents.agent import create_unsafe_agent, test_agent
     from attacks.attacks import run_attacks, generate_ai_attacks
 
-    # Create and test the unsafe agent
-    agent, runner = create_unsafe_agent()
-    await test_agent(agent, runner)
-
-    # TODO 1: Run manual adversarial prompts
     print("\n--- Running manual attacks (TODO 1) ---")
-    results = await run_attacks(agent, runner)
+    results = await run_attacks(None, None)
 
-    # TODO 2: Generate AI attack test cases
     print("\n--- Generating AI attacks (TODO 2) ---")
     ai_attacks = await generate_ai_attacks()
 
@@ -46,29 +40,28 @@ async def part2_guardrails():
     print("PART 2: Guardrails")
     print("=" * 60)
 
-    # Part 2A: Input guardrails
     print("\n--- Part 2A: Input Guardrails ---")
     from guardrails.input_guardrails import (
         test_injection_detection,
         test_topic_filter,
         test_input_plugin,
     )
+
     test_injection_detection()
     print()
     test_topic_filter()
     print()
-    await test_input_plugin()
+    test_input_plugin()
 
-    # Part 2B: Output guardrails
     print("\n--- Part 2B: Output Guardrails ---")
-    from guardrails.output_guardrails import test_content_filter, _init_judge
-    _init_judge()  # Initialize LLM judge if TODO 7 is done
+    from guardrails.output_guardrails import test_content_filter
+
     test_content_filter()
 
-    # Part 2C: NeMo Guardrails
     print("\n--- Part 2C: NeMo Guardrails ---")
     try:
         from guardrails.nemo_guardrails import init_nemo, test_nemo_guardrails
+
         init_nemo()
         await test_nemo_guardrails()
     except ImportError:
@@ -84,9 +77,7 @@ async def part3_testing():
     print("=" * 60)
 
     from testing.testing import run_comparison, print_comparison, SecurityTestPipeline
-    from agents.agent import create_unsafe_agent
 
-    # TODO 10: Before vs after comparison
     print("\n--- TODO 10: Before/After Comparison ---")
     unprotected, protected = await run_comparison()
     if unprotected and protected:
@@ -94,10 +85,8 @@ async def part3_testing():
     else:
         print("Complete TODO 10 to see the comparison.")
 
-    # TODO 11: Automated security pipeline
     print("\n--- TODO 11: Security Test Pipeline ---")
-    agent, runner = create_unsafe_agent()
-    pipeline = SecurityTestPipeline(agent, runner)
+    pipeline = SecurityTestPipeline()
     results = await pipeline.run_all()
     if results:
         pipeline.print_report(results)
@@ -113,11 +102,9 @@ def part4_hitl():
 
     from hitl.hitl import test_confidence_router, test_hitl_points
 
-    # TODO 12: Confidence Router
     print("\n--- TODO 12: Confidence Router ---")
     test_confidence_router()
 
-    # TODO 13: HITL Decision Points
     print("\n--- TODO 13: HITL Decision Points ---")
     test_hitl_points()
 
@@ -155,7 +142,9 @@ if __name__ == "__main__":
         description="Lab 11: Guardrails, HITL & Responsible AI"
     )
     parser.add_argument(
-        "--part", type=int, choices=[1, 2, 3, 4],
+        "--part",
+        type=int,
+        choices=[1, 2, 3, 4],
         help="Run only a specific part (1-4). Default: run all.",
     )
     args = parser.parse_args()

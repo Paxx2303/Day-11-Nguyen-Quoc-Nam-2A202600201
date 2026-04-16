@@ -1,55 +1,76 @@
 """
-Lab 11 — Helper Utilities
+Lab 11 — Helper Utilities using OpenAI
 """
-from google.genai import types
+
+import os
+from openai import AsyncOpenAI
+
+
+_async_client = None
+
+
+def get_openai_client():
+    """Get or create OpenAI AsyncClient."""
+    global _async_client
+    if _async_client is None:
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        _async_client = AsyncOpenAI(api_key=api_key)
+    return _async_client
+
+
+async def chat_with_openai(
+    prompt: str, system_prompt: str = None, model: str = "gpt-4o-mini"
+) -> str:
+    """Simple chat with OpenAI API.
+
+    Args:
+        prompt: User message
+        system_prompt: Optional system prompt
+        model: Model to use
+
+    Returns:
+        Assistant response text
+    """
+    client = get_openai_client()
+
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
+    response = await client.chat.completions.create(
+        model=model,
+        messages=messages,
+    )
+    return response.choices[0].message.content
 
 
 async def chat_with_agent(agent, runner, user_message: str, session_id=None):
     """Send a message to the agent and get the response.
 
+    This is a compatibility shim - uses OpenAI if no runner provided.
+
     Args:
-        agent: The LlmAgent instance
-        runner: The InMemoryRunner instance
+        agent: The LlmAgent instance (ignored, kept for compatibility)
+        runner: The InMemoryRunner instance (ignored, kept for compatibility)
         user_message: Plain text message to send
-        session_id: Optional session ID to continue a conversation
+        session_id: Optional session ID (ignored)
 
     Returns:
         Tuple of (response_text, session)
     """
-    user_id = "student"
-    app_name = runner.app_name
+    from core.config import VinBank_SYSTEM_PROMPT
 
-    session = None
-    if session_id is not None:
-        try:
-            session = await runner.session_service.get_session(
-                app_name=app_name, user_id=user_id, session_id=session_id
-            )
-        except (ValueError, KeyError):
-            pass
+    client = get_openai_client()
 
-    if session is None:
-        try:
-            session = await runner.session_service.create_session(
-                app_name=app_name, user_id=user_id
-            )
-        except Exception:
-            session = await runner.session_service.create_session(
-                app_name=app_name, user_id=user_id
-            )
+    messages = [
+        {"role": "system", "content": VinBank_SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
 
-    content = types.Content(
-        role="user",
-        parts=[types.Part.from_text(text=user_message)],
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages,
     )
 
-    final_response = ""
-    async for event in runner.run_async(
-        user_id=user_id, session_id=session.id, new_message=content
-    ):
-        if hasattr(event, "content") and event.content and event.content.parts:
-            for part in event.content.parts:
-                if hasattr(part, "text") and part.text:
-                    final_response += part.text
-
-    return final_response, session
+    return response.choices[0].message.content, None

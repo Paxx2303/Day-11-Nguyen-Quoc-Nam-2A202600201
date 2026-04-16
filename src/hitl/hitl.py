@@ -3,6 +3,7 @@ Lab 11 — Part 4: Human-in-the-Loop Design
   TODO 12: Confidence Router
   TODO 13: Design 3 HITL decision points
 """
+
 from dataclasses import dataclass
 
 
@@ -32,10 +33,11 @@ HIGH_RISK_ACTIONS = [
 @dataclass
 class RoutingDecision:
     """Result of the confidence router."""
-    action: str          # "auto_send", "queue_review", "escalate"
+
+    action: str  # "auto_send", "queue_review", "escalate"
     confidence: float
     reason: str
-    priority: str        # "low", "normal", "high"
+    priority: str  # "low", "normal", "high"
     requires_human: bool
 
 
@@ -53,8 +55,9 @@ class ConfidenceRouter:
     HIGH_THRESHOLD = 0.9
     MEDIUM_THRESHOLD = 0.7
 
-    def route(self, response: str, confidence: float,
-              action_type: str = "general") -> RoutingDecision:
+    def route(
+        self, response: str, confidence: float, action_type: str = "general"
+    ) -> RoutingDecision:
         """Route a response based on confidence score and action type.
 
         Args:
@@ -65,32 +68,39 @@ class ConfidenceRouter:
         Returns:
             RoutingDecision with routing action and metadata
         """
-        # TODO 12: Implement routing logic
-        #
-        # 1. Check if action_type is in HIGH_RISK_ACTIONS
-        #    -> If yes: always escalate (action="escalate", priority="high",
-        #       requires_human=True, reason="High-risk action: {action_type}")
-        #
-        # 2. Check confidence thresholds:
-        #    - confidence >= 0.9:
-        #      action="auto_send", priority="low",
-        #      requires_human=False, reason="High confidence"
-        #
-        #    - 0.7 <= confidence < 0.9:
-        #      action="queue_review", priority="normal",
-        #      requires_human=True, reason="Medium confidence — needs review"
-        #
-        #    - confidence < 0.7:
-        #      action="escalate", priority="high",
-        #      requires_human=True, reason="Low confidence — escalating"
+        if action_type in HIGH_RISK_ACTIONS:
+            return RoutingDecision(
+                action="escalate",
+                confidence=confidence,
+                reason=f"High-risk action: {action_type}",
+                priority="high",
+                requires_human=True,
+            )
 
-        return RoutingDecision(
-            action="auto_send",
-            confidence=confidence,
-            reason="TODO: implement routing logic",
-            priority="low",
-            requires_human=False,
-        )  # TODO: Replace with implementation
+        if confidence >= 0.9:
+            return RoutingDecision(
+                action="auto_send",
+                confidence=confidence,
+                reason="High confidence",
+                priority="low",
+                requires_human=False,
+            )
+        elif confidence >= 0.7:
+            return RoutingDecision(
+                action="queue_review",
+                confidence=confidence,
+                reason="Medium confidence — needs review",
+                priority="normal",
+                requires_human=True,
+            )
+        else:
+            return RoutingDecision(
+                action="escalate",
+                confidence=confidence,
+                reason="Low confidence — escalating",
+                priority="high",
+                requires_human=True,
+            )
 
 
 # ============================================================
@@ -109,27 +119,27 @@ class ConfidenceRouter:
 hitl_decision_points = [
     {
         "id": 1,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "High-Value Transaction Review",
+        "trigger": "Transaction amount > 50,000,000 VND (~$2,000 USD)",
+        "hitl_model": "human-in-the-loop",
+        "context_needed": "Transaction details (recipient, amount, timestamp), recent transaction history, customer risk profile",
+        "example": "A customer requests a transfer of 100,000,000 VND to an unknown account. The AI flags this and waits for a human bank officer to verify the recipient before processing.",
     },
     {
         "id": 2,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Suspicious Activity Detection",
+        "trigger": "AI detects potential fraud patterns (unusual location, multiple rapid transactions, mismatched behavioral signals)",
+        "hitl_model": "human-on-the-loop",
+        "context_needed": "Account history, location data, device fingerprints, transaction patterns, fraud score from ML model",
+        "example": "A customer normally in Hanoi suddenly attempts a withdrawal in Ho Chi Minh City with a new device. The AI flags this as suspicious and queues for human review while temporarily blocking the transaction.",
     },
     {
         "id": 3,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Customer Dispute Resolution",
+        "trigger": "Customer expresses dissatisfaction or disputes a transaction, especially for amounts > 10,000,000 VND",
+        "hitl_model": "human-as-tiebreaker",
+        "context_needed": "Transaction records, customer complaint details, previous interaction history, applicable policies",
+        "example": "A customer claims they were charged 5,000,000 VND for a service they didn't use. The AI explains the charge but the customer disputes it. The case is escalated to a human to review evidence and make a final decision.",
     },
 ]
 
@@ -137,6 +147,7 @@ hitl_decision_points = [
 # ============================================================
 # Quick tests
 # ============================================================
+
 
 def test_confidence_router():
     """Test ConfidenceRouter with sample scenarios."""
@@ -152,7 +163,9 @@ def test_confidence_router():
 
     print("Testing ConfidenceRouter:")
     print("=" * 80)
-    print(f"{'Scenario':<25} {'Conf':<6} {'Action Type':<18} {'Decision':<15} {'Priority':<10} {'Human?'}")
+    print(
+        f"{'Scenario':<25} {'Conf':<6} {'Action Type':<18} {'Decision':<15} {'Priority':<10} {'Human?'}"
+    )
     print("-" * 80)
 
     for scenario, conf, action_type in test_cases:
